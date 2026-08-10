@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UNION SLIV · Архив</title>
+<link rel="icon" href="logo.png">
+<meta name="description" content="Union Sliv — архив переписок, серверных чатов, документов и медиа.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="bg" aria-hidden="true">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+  <div class="grid-overlay"></div>
+</div>
+
+<header class="topbar" id="topbar">
+  <div class="brand" onclick="switchTab('home')" role="button" tabindex="0" aria-label="На главную">
+    <img src="logo.png" alt="AvirA" class="brand-mark">
+    <span class="brand-name">UNION&nbsp;SLIV<span class="brand-dot"></span></span>
+  </div>
+  <span class="brand-badge">BY AvirA &amp;&amp; Doffs</span>
+  <nav class="tabs" id="tabs" aria-label="Разделы">
+    <button class="tab-btn active" data-tab="home">Главная</button>
+    <button class="tab-btn" data-tab="server">Сервер</button>
+    <button class="tab-btn" data-tab="dms">Переписки</button>
+    <button class="tab-btn" data-tab="docs">Документы</button>
+    <button class="tab-btn" data-tab="media">Медиа</button>
+  </nav>
+  <div class="search-wrap">
+    <svg class="search-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+    <input id="searchInput" type="text" placeholder="Поиск по всем чатам" autocomplete="off" spellcheck="false">
+    <span class="search-kbd">/</span>
+  </div>
+</header>
+
+<div class="chat-progress glass" id="chatProgress" style="display:none">
+  <div class="cp-bar"><div class="cp-fill" id="cpFill"></div></div>
+  <div class="cp-label" id="cpLabel">0%</div>
+  <button class="cp-cancel" id="cpCancel" aria-label="Отменить">&#10005;</button>
+</div>
+
+<main id="app">
+  <!-- HOME -->
+  <section id="view-home" class="view active">
+    <div class="hero">
+      <div class="hero-copy">
+        <span class="hero-badge"><span class="hb-dot"></span> UNION SLIV BY AvirA &amp;&amp; Doffs</span>
+        <h1 class="hero-title">Архив <span class="grad-text">Union Sliv</span></h1>
+        <p class="hero-sub">Переписки, серверные чаты, документы и медиафайлы. Один дашборд и поиск по всем сообщениям архива.</p>
+        <div class="hero-actions">
+          <button class="btn btn-primary" onclick="switchTab('server')">
+            Открыть чаты
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </button>
+          <button class="btn btn-ghost" onclick="switchTab('docs')">Документы</button>
+        </div>
+      </div>
+      <div class="hero-stats" id="heroStats"></div>
+    </div>
+    <div id="searchRes"></div>
+    <div class="section" id="recentList"></div>
+  </section>
+
+  <!-- SERVER -->
+  <section id="view-server" class="view">
+    <div id="serverList"></div>
+  </section>
+
+  <!-- DMS -->
+  <section id="view-dms" class="view">
+    <div id="dmGroups"></div>
+  </section>
+
+  <!-- DOCS -->
+  <section id="view-docs" class="view">
+    <div id="googleDocs"></div>
+    <div id="docList"></div>
+    <div class="panel glass" id="docViewer" style="display:none">
+      <button class="btn btn-ghost btn-back" onclick="closeDoc()">&#8592; Назад</button>
+      <div class="doc-title" id="docTitle"></div>
+      <div class="doc-meta" id="docMeta"></div>
+      <div class="doc-content" id="docContent"></div>
+    </div>
+  </section>
+
+  <!-- MEDIA -->
+  <section id="view-media" class="view">
+    <div class="media-cats" id="mediaCats"></div>
+  </section>
+
+  <!-- CHAT -->
+  <section id="view-chat" class="view">
+    <div class="chat-layout">
+      <aside class="chat-side glass" id="chatSide"></aside>
+      <div class="chat-main glass">
+        <div class="chat-head" id="chatHead"></div>
+        <div class="chat-scroll" id="chatScroll"></div>
+        <div class="chat-loading" id="chatLoading" style="display:none">Загрузка</div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="lightbox" id="lightbox" aria-hidden="true">
+  <button class="lb-close" onclick="closeLightbox()" aria-label="Закрыть">&#10005;</button>
+  <img id="lbImg" alt="">
+  <div class="lb-caption" id="lbCaption"></div>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script src="js/app.js"></script>
+</body>
+</html>
