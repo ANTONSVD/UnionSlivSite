@@ -103,6 +103,7 @@ const state = {
   loading: false,
   search: { active: false, controller: null, q: '' },
   toastTimer: null,
+  commits: null,
 };
 
 /* ================= animations ================= */
@@ -177,13 +178,16 @@ function renderHome() {
   const idx = state.index;
   const s = idx.stats;
   const gen = idx.generated ? fmtDate(new Date(idx.generated).getTime(), true) : '—';
+  const latestCommit = state.commits && state.commits.length
+    ? fmtDate(new Date(state.commits[0].commit.author.date).getTime(), true)
+    : null;
 
   const statTiles = [
     { n: s.messages, lbl: 'Сообщений', accent: true },
     { n: s.chats, lbl: 'Чатов', fmt: 'short' },
     { n: s.docs + (idx.google_docs ? idx.google_docs.length : 0), lbl: 'Документов' },
     { n: s.media, lbl: 'Медиа' },
-    { n: null, lbl: 'Обновлено', text: gen, wide: true },
+    { n: null, lbl: 'Обновлено', text: latestCommit || gen, wide: true },
   ];
 
   $('heroStats').innerHTML = statTiles.map(t => {
@@ -194,10 +198,68 @@ function renderHome() {
   }).join('');
   animateStats($('heroStats'));
 
-  const top = [...idx.chats].sort((a, b) => b.count - a.count).slice(0, 8);
-  $('recentList').innerHTML = `
+  renderRecent();
+  observeReveals();
+}
+
+function renderRecent() {
+  const top = [...state.index.chats].sort((a, b) => b.count - a.count).slice(0, 8);
+  let html = `
     <div class="section-title">Топ чатов</div>
     <div class="chat-grid">${top.map(chatCard).join('')}</div>`;
+  if (state.commits && state.commits.length) {
+    html += `
+    <div class="section-title">Последние обновления</div>
+    <div class="panel upd-list">${state.commits.map(commitRow).join('')}</div>`;
+  }
+  $('recentList').innerHTML = html;
+}
+
+function commitRow(c) {
+  const msg = String(c.commit.message || '').split('\n')[0] || 'Коммит';
+  const short = String(c.sha || '').slice(0, 7);
+  const when = fmtDate(new Date(c.commit.author.date).getTime(), true);
+  const author = c.commit.author.name || '';
+  return `
+    <a class="upd-item" href="${esc(c.html_url)}" target="_blank" rel="noopener">
+      <span class="upd-msg">${esc(msg)}</span>
+      <span class="upd-meta">
+        <span class="upd-auth">${esc(author)}</span>
+        <span class="upd-sha">${esc(short)}</span>
+        <span class="upd-date">${esc(when)}</span>
+      </span>
+    </a>`;
+}
+
+function fetchCommits() {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 8000);
+  fetch('https://api.github.com/repos/ANTONSVD/UnionSlivSite/commits?per_page=6', {
+    headers: { 'Accept': 'application/vnd.github+json' },
+    signal: ctrl.signal
+  })
+    .then(r => {
+      if (!r.ok) throw new Error('GitHub API ' + r.status);
+      return r.json();
+    })
+    .then(data => {
+      state.commits = Array.isArray(data) ? data : [];
+      applyCommits();
+    })
+    .catch(() => {
+      state.commits = state.commits || [];
+      applyCommits();
+    })
+    .finally(() => clearTimeout(timer));
+}
+
+function applyCommits() {
+  const list = state.commits || [];
+  if (list.length) {
+    const tile = document.querySelector('#heroStats .stat-wide .stat-num');
+    if (tile) tile.textContent = fmtDate(new Date(list[0].commit.author.date).getTime(), true);
+  }
+  renderRecent();
   observeReveals();
 }
 
@@ -727,6 +789,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const res = await fetch('data/index.json');
     state.index = await res.json();
     renderHome();
+    fetchCommits();
   } catch (err) {
     $('heroStats').innerHTML = '<div class="panel"><p class="empty" style="color:var(--danger)">Не удалось загрузить данные.</p></div>';
   }

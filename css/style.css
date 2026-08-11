@@ -360,6 +360,42 @@ main {
   margin: 34px 2px 14px;
 }
 
+/* ---------- updates list ---------- */
+.upd-list {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 10px;
+}
+.upd-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  text-decoration: none;
+  transition: background 0.15s var(--ease), border-color 0.15s var(--ease);
+}
+.upd-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--border-visible);
+}
+.upd-msg {
+  color: var(--text-1); font-size: 13.5px; font-weight: 500;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.upd-meta {
+  display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+  font-size: 11.5px; color: var(--text-3);
+}
+.upd-auth { color: var(--text-2); }
+.upd-sha {
+  font-family: var(--mono); font-size: 11px;
+  color: var(--accent);
+  background: var(--accent-muted);
+  padding: 1px 7px; border-radius: 999px;
+}
+@media (max-width: 640px) {
+  .upd-item { flex-direction: column; align-items: flex-start; gap: 6px; }
+}
+
 /* ---------- chat cards ---------- */
 .chat-grid {
   display: grid;
