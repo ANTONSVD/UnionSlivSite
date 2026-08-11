@@ -721,6 +721,14 @@ main {
   border-radius: 4px; padding: 1px 4px;
 }
 .msg-content img, .msg-content .chatlog__markdown img { max-width: 100%; border-radius: 8px; }
+.chatlog__emoji {
+  width: 1.325rem; height: 1.325rem;
+  margin: 0 0.06rem;
+  vertical-align: -0.4em;
+  object-fit: contain;
+}
+.chatlog__emoji--small { width: 1rem; height: 1rem; }
+.chatlog__emoji--large { width: 2.8rem; height: 2.8rem; }
 
 .msg.sys .msg-content {
   color: var(--text-2);
