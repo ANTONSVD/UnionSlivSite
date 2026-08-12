@@ -5,83 +5,138 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>UNION SLIV · Архив</title>
 <link rel="icon" href="logo.png">
-<meta name="description" content="Union Sliv — архив переписок, серверных чатов, документов и медиа.">
+<meta name="description" content="Union Sliv — кинематографический архив переписок, серверных чатов, документов и медиа. Поиск по 290 000+ сообщениям.">
+<meta name="theme-color" content="#07030f">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-<div class="bg" aria-hidden="true">
-  <div class="orb orb-1"></div>
-  <div class="orb orb-2"></div>
-  <div class="orb orb-3"></div>
-  <div class="grid-overlay"></div>
+
+<!-- ambient layers -->
+<div class="aurora" aria-hidden="true">
+  <div class="blob b1"></div>
+  <div class="blob b2"></div>
+  <div class="blob b3"></div>
+  <div class="blob b4"></div>
+  <div class="grid"></div>
+  <div class="vignette"></div>
+</div>
+<canvas id="fx" aria-hidden="true"></canvas>
+<div class="grain" aria-hidden="true"></div>
+<div class="progress-bar" id="progressBar"></div>
+
+<!-- preloader -->
+<div class="preloader" id="preloader" aria-hidden="true">
+  <div class="pl-inner">
+    <div class="pl-logo">
+      <span class="pl-ring"></span>
+      <img src="logo.png" alt="">
+    </div>
+    <div class="pl-name">UNION&nbsp;<span>SLIV</span></div>
+    <div class="pl-bar"><span id="plPct">0%</span><div class="pl-track"><div class="pl-fill" id="plFill"></div></div></div>
+  </div>
 </div>
 
+<!-- topbar -->
 <header class="topbar" id="topbar">
   <div class="brand" onclick="switchTab('home')" role="button" tabindex="0" aria-label="На главную">
-    <img src="logo.png" alt="AvirA" class="brand-mark">
-    <span class="brand-name">UNION&nbsp;SLIV<span class="brand-dot"></span></span>
+    <span class="brand-mark"><img src="logo.png" alt=""><span class="mark-ring"></span></span>
+    <span class="brand-name">UNION<span class="brand-dot">.</span><span class="brand-accent">SLIV</span></span>
   </div>
-  <span class="brand-badge">BY AvirA &amp;&amp; Doffs</span>
   <nav class="tabs" id="tabs" aria-label="Разделы">
+    <span class="tab-pill" id="tabPill" aria-hidden="true"></span>
     <button class="tab-btn active" data-tab="home">Главная</button>
-    <button class="tab-btn" data-tab="server">Сервер</button>
+    <button class="tab-btn" data-tab="server">Чаты</button>
     <button class="tab-btn" data-tab="dms">Переписки</button>
     <button class="tab-btn" data-tab="docs">Документы</button>
     <button class="tab-btn" data-tab="media">Медиа</button>
   </nav>
-  <div class="search-wrap">
-    <svg class="search-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-    <input id="searchInput" type="text" placeholder="Поиск по всем чатам" autocomplete="off" spellcheck="false">
-    <span class="search-kbd">/</span>
-  </div>
+  <button class="cmd-trigger" id="cmdTrigger" aria-label="Поиск по архиву">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+    <span class="ct-text">Поиск по архиву</span>
+    <kbd>Ctrl&nbsp;K</kbd>
+  </button>
 </header>
 
-<div class="chat-progress glass" id="chatProgress" style="display:none">
-  <div class="cp-bar"><div class="cp-fill" id="cpFill"></div></div>
-  <div class="cp-label" id="cpLabel">0%</div>
-  <button class="cp-cancel" id="cpCancel" aria-label="Отменить">&#10005;</button>
-</div>
-
 <main id="app">
-  <!-- HOME -->
+
+  <!-- ============ HOME ============ -->
   <section id="view-home" class="view active">
     <div class="hero">
       <div class="hero-copy">
-        <span class="hero-badge"><span class="hb-dot"></span> UNION SLIV BY AvirA &amp;&amp; Doffs</span>
-        <h1 class="hero-title">Архив <span class="grad-text">Union Sliv</span></h1>
-        <p class="hero-sub">Переписки, серверные чаты, документы и медиафайлы. Один дашборд и поиск по всем сообщениям архива.</p>
+        <div class="hero-eyebrow"><span class="dot"></span><span>UNION SLIV · BY AvirA &amp;&amp; Doffs</span></div>
+        <h1 class="hero-title">
+          <span class="ht-line"><span class="grad">Union Sliv</span></span>
+        </h1>
+        <p class="hero-sub">290&nbsp;000+ сообщений, личные переписки, серверные чаты, документы и медиа — всё, что осталось в тени, собрано в одном кинематографичном архиве.</p>
         <div class="hero-actions">
-          <button class="btn btn-primary" onclick="switchTab('server')">
-            Открыть чаты
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          <button class="btn btn-primary" data-magnet onclick="switchTab('server')">
+            <span>Открыть архив</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
           </button>
-          <button class="btn btn-ghost" onclick="switchTab('docs')">Документы</button>
+          <button class="btn btn-ghost" data-magnet onclick="openCmd()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+            <span>Найти всё</span>
+          </button>
+        </div>
+        <div class="hero-hints">
+          <span><kbd>Ctrl</kbd> <kbd>K</kbd> — поиск</span>
+          <span class="hh-sep">/</span>
+          <span class="hh-keys"><kbd>↑</kbd><kbd>↓</kbd> <kbd>Enter</kbd> — навигация</span>
         </div>
       </div>
-      <div class="hero-stats" id="heroStats"></div>
+
+      <div class="hero-stage">
+        <div class="tilt-3d" id="heroTilt" data-tilt>
+          <div class="hero-preview" id="heroPreview">
+            <div class="hp-head">
+              <span class="hp-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
+              <div class="hp-meta">
+                <div class="hp-title" id="hpTitle">#живой-поток</div>
+                <div class="hp-sub"><span class="live"></span> архив синхронизирован</div>
+              </div>
+              <span class="hp-badge">LIVE</span>
+            </div>
+            <div class="hp-msgs" id="hpMsgs"></div>
+            <div class="hp-foot">
+              <span class="typing"><span class="td"></span><span class="td"></span><span class="td"></span></span>
+              <span class="hp-foot-txt">загрузка из архива…</span>
+            </div>
+          </div>
+        </div>
+        <div class="chip chip-1"><span class="chip-ico">◈</span><b id="chipMsgs">290 569</b><span>сообщений</span></div>
+        <div class="chip chip-2"><span class="chip-ico">▤</span><b id="chipChats">329</b><span>чатов</span></div>
+        <div class="chip chip-3"><span class="chip-ico">◎</span><b>0.4&nbsp;сек</b><span>поиск</span></div>
+        <div class="hero-glow"></div>
+      </div>
     </div>
-    <div id="searchRes"></div>
-    <div class="section" id="recentList"></div>
+
+    <div class="stats-band reveal" id="heroStats"></div>
+
+    <div class="marquee">
+      <div class="mq-track" id="mqTrack"></div>
+    </div>
+
+    <div id="recentList"></div>
   </section>
 
-  <!-- SERVER -->
+  <!-- ============ SERVER ============ -->
   <section id="view-server" class="view">
     <div id="serverList"></div>
   </section>
 
-  <!-- DMS -->
+  <!-- ============ DMS ============ -->
   <section id="view-dms" class="view">
     <div id="dmGroups"></div>
   </section>
 
-  <!-- DOCS -->
+  <!-- ============ DOCS ============ -->
   <section id="view-docs" class="view">
     <div id="googleDocs"></div>
     <div id="docList"></div>
-    <div class="panel glass" id="docViewer" style="display:none">
+    <div class="panel doc-viewer" id="docViewer" style="display:none">
       <button class="btn btn-ghost btn-back" onclick="closeDoc()">&#8592; Назад</button>
       <div class="doc-title" id="docTitle"></div>
       <div class="doc-meta" id="docMeta"></div>
@@ -89,24 +144,65 @@
     </div>
   </section>
 
-  <!-- MEDIA -->
+  <!-- ============ MEDIA ============ -->
   <section id="view-media" class="view">
-    <div class="media-cats" id="mediaCats"></div>
+    <div class="view-head">
+      <div class="vh-eyebrow">ГАЛЕРЕЯ</div>
+      <h2 class="vh-title">Медиа <span class="grad">архива</span></h2>
+      <p class="vh-sub">Скриншоты, видео, голосовые и файлы — всё по категориям.</p>
+    </div>
+    <div id="mediaCats"></div>
   </section>
 
-  <!-- CHAT -->
+  <!-- ============ CHAT ============ -->
   <section id="view-chat" class="view">
     <div class="chat-layout">
-      <aside class="chat-side glass" id="chatSide"></aside>
-      <div class="chat-main glass">
+      <aside class="chat-side" id="chatSide"></aside>
+      <div class="chat-main">
         <div class="chat-head" id="chatHead"></div>
         <div class="chat-scroll" id="chatScroll"></div>
-        <div class="chat-loading" id="chatLoading" style="display:none">Загрузка</div>
+        <div class="chat-loading" id="chatLoading" style="display:none"><span class="ld-dot"></span><span class="ld-dot"></span><span class="ld-dot"></span></div>
       </div>
     </div>
   </section>
+
 </main>
 
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <span class="brand-mark"><img src="logo.png" alt=""><span class="mark-ring"></span></span>
+      <span class="brand-name">UNION<span class="brand-dot">.</span><span class="brand-accent">SLIV</span></span>
+    </div>
+    <p class="footer-note">Архив переписок, чатов, документов и медиа.</p>
+  </div>
+</footer>
+
+<button class="back-top" id="backTop" aria-label="Наверх">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+
+<!-- command palette -->
+<div class="cmd-backdrop" id="cmdBackdrop"></div>
+<div class="cmd" id="cmd" role="dialog" aria-modal="true" aria-label="Поиск">
+  <div class="cmd-head">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+    <input id="cmdInput" type="text" placeholder="Поиск по всем сообщениям…" autocomplete="off" spellcheck="false">
+    <kbd>Esc</kbd>
+  </div>
+  <div class="cmd-progress-row" id="cmdProgressRow" style="display:none">
+    <div class="cmd-ring" id="cmdRing" style="--p:0%"><span id="cmdRingPct">0%</span></div>
+    <div class="cmd-status" id="cmdStatus">Сканирую архив…</div>
+  </div>
+  <div class="cmd-results" id="cmdResults"></div>
+  <div class="cmd-foot">
+    <span><kbd>↑</kbd><kbd>↓</kbd> навигация</span>
+    <span><kbd>Enter</kbd> открыть</span>
+    <span class="cf-note">поиск по 290 000+ сообщениям</span>
+  </div>
+</div>
+
+<!-- lightbox -->
 <div class="lightbox" id="lightbox" aria-hidden="true">
   <button class="lb-close" onclick="closeLightbox()" aria-label="Закрыть">&#10005;</button>
   <img id="lbImg" alt="">
