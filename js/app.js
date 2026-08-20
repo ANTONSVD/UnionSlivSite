@@ -77,6 +77,12 @@ function hashStr(s) {
   return h;
 }
 
+// Stable per-message key used to jump to a specific message from search.
+function msgKey(m) {
+  if (m.i) return 'i:' + m.i;
+  return 'h:' + hashStr((m.t || 0) + '|' + (m.n || '') + '|' + (m.c || ''));
+}
+
 function paletteFor(name) {
   return PALETTES[hashStr(name) % PALETTES.length];
 }
@@ -113,6 +119,8 @@ const state = {
   nextChunk: 0,
   loading: false,
   lastDayKey: null,
+  firstDayKey: null,
+  pendingMk: null,
   search: { controller: null, q: '', idx: 0 },
   toastTimer: null,
   commits: null,
@@ -718,13 +726,15 @@ function closeLightbox() {
 
 /* ================= chat ================= */
 
-async function openChat(id) {
+async function openChat(id, mk) {
   const c = state.index.chats.find(x => x.id === id);
   if (!c) return;
   state.chat = c;
-  state.nextChunk = 0;
+  state.nextChunk = c.chunks.length - 1;   // newest chunk first
   state.loading = false;
+  state.pendingMk = mk || null;
   state.lastDayKey = null;
+  state.firstDayKey = null;
   closeCmd();
   $('chatHead').innerHTML = `
     <div style="display:flex;align-items:center;gap:12px;min-width:0">
@@ -738,7 +748,8 @@ async function openChat(id) {
   $('chatLoading').style.display = 'none';
   switchTab('chat');
   fillChatSide();
-  await loadMore();
+  await loadChunk('init');
+  if (state.pendingMk) await scanForMk();
 }
 
 function fillChatSide() {
@@ -754,39 +765,96 @@ function fillChatSide() {
       </div>`).join('');
 }
 
-async function loadMore() {
+function dayDividerNode(t) {
+  const d = document.createElement('div');
+  d.className = 'day-divider';
+  d.innerHTML = `<span>${esc(fmtDate(t, false))}</span>`;
+  return d;
+}
+
+function dateFromDayKey(dk) {
+  const [y, mo, d] = String(dk).split('-').map(Number);
+  return new Date(y, mo - 1, d).getTime();
+}
+
+// Loads chat chunks. 'init' shows the newest chunk (bottom); 'older' prepends
+// the next older chunk above when the user scrolls up.
+async function loadChunk(mode) {
   const c = state.chat;
-  if (!c || state.loading || state.nextChunk >= c.chunks.length) return;
+  if (!c || state.loading) return;
+  if (state.nextChunk < 0) return;            // nothing older left
   state.loading = true;
   $('chatLoading').style.display = 'flex';
   try {
-    const res = await fetch(c.chunks[state.nextChunk]);
+    const k = state.nextChunk;
+    const res = await fetch(c.chunks[k]);
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const msgs = await res.json();
-    state.nextChunk++;
+    state.nextChunk--;                         // walk toward the oldest
     const scroll = $('chatScroll');
-    const nearBottom = scroll.scrollHeight - scroll.scrollTop - scroll.clientHeight < 80;
-    const frag = document.createDocumentFragment();
-    for (const m of msgs) {
-      const dk = m.t ? dayKey(m.t) : null;
-      if (dk && dk !== state.lastDayKey) {
-        state.lastDayKey = dk;
-        const div = document.createElement('div');
-        div.className = 'day-divider';
-        div.innerHTML = `<span>${esc(fmtDate(m.t, false))}</span>`;
-        frag.appendChild(div);
+    if (mode === 'init') {
+      const frag = document.createDocumentFragment();
+      let prevDay = state.lastDayKey;          // null on first open
+      for (const m of msgs) {
+        const dk = m.t ? dayKey(m.t) : null;
+        if (dk && dk !== prevDay) { frag.appendChild(dayDividerNode(m.t)); prevDay = dk; }
+        frag.appendChild(renderMessage(m));
       }
-      frag.appendChild(renderMessage(m));
+      if (msgs.length) state.lastDayKey = dayKey(msgs[msgs.length - 1].t);
+      scroll.appendChild(frag);
+      scroll.scrollTop = scroll.scrollHeight;  // show the newest messages
+    } else {                                   // 'older' -> prepend above
+      const frag = document.createDocumentFragment();
+      const topEl = scroll.firstChild;
+      const topDay = (topEl && topEl.dataset && topEl.dataset.day)
+        ? topEl.dataset.day : state.firstDayKey;
+      let prevDay = msgs.length ? dayKey(msgs[0].t) : null;
+      for (let j = 0; j < msgs.length; j++) {
+        const m = msgs[j];
+        const dk = m.t ? dayKey(m.t) : null;
+        if (j > 0 && dk !== prevDay) frag.appendChild(dayDividerNode(m.t));
+        prevDay = dk;
+        frag.appendChild(renderMessage(m));
+      }
+      const lastDay = msgs.length ? dayKey(msgs[msgs.length - 1].t) : null;
+      if (lastDay && topDay && lastDay !== topDay) {
+        frag.appendChild(dayDividerNode(dateFromDayKey(topDay)));
+      }
+      const prevTop = scroll.scrollTop;
+      const prevH = scroll.scrollHeight;
+      scroll.insertBefore(frag, scroll.firstChild);
+      scroll.scrollTop = prevTop + (scroll.scrollHeight - prevH);
+      if (msgs.length) state.firstDayKey = dayKey(msgs[0].t);
     }
-    scroll.appendChild(frag);
-    if (nearBottom) scroll.scrollTop = scroll.scrollHeight;
   } catch (e) {
-    console.error('loadMore:', e);
+    console.error('loadChunk:', e);
     toast('Не удалось загрузить сообщения');
   } finally {
     state.loading = false;
     $('chatLoading').style.display = 'none';
   }
+}
+
+// Walk backward through chunks to locate a specific message (from search).
+async function scanForMk() {
+  const mk = state.pendingMk;
+  if (!mk) return;
+  const safe = s => String(s).replace(/["\\]/g, '\\$&');
+  for (let guard = 0; guard < 5000; guard++) {
+    const el = document.querySelector(`.msg[data-mk="${safe(mk)}"]`);
+    if (el) {
+      el.scrollIntoView({ block: 'center' });
+      el.classList.add('flash');
+      setTimeout(() => el.classList.remove('flash'), 1800);
+      state.pendingMk = null;
+      return;
+    }
+    if (state.nextChunk < 0) break;            // searched everything
+    await loadChunk('older');
+  }
+  state.pendingMk = null;
+  const scroll = $('chatScroll');
+  scroll.scrollTop = scroll.scrollHeight;      // fallback: show newest
 }
 
 function dayKey(t) {
@@ -799,6 +867,7 @@ function dayKey(t) {
 function renderMessage(m) {
   const div = document.createElement('div');
   div.className = 'msg';
+  div.dataset.mk = msgKey(m);
   if (m.sy) {
     div.classList.add('sys');
     div.innerHTML = `<div class="msg-content">${esc(m.sy)}</div>`;
@@ -824,6 +893,7 @@ function renderMessage(m) {
     </div>`;
 
   div.innerHTML = avHtml + body;
+  if (m.t) div.dataset.day = dayKey(m.t);
   return div;
 }
 
@@ -908,12 +978,12 @@ function bindCmd() {
     } else if (e.key === 'Enter') {
       e.preventDefault();
       const row = rows[state.search.idx] || rows[0];
-      if (row) openChat(row.dataset.chat);
+      if (row) openChat(row.dataset.chat, row.dataset.mk);
     }
   });
   $('cmdResults').addEventListener('click', e => {
     const row = e.target.closest('.cmd-row');
-    if (row) openChat(row.dataset.chat);
+    if (row) openChat(row.dataset.chat, row.dataset.mk);
   });
   document.addEventListener('keydown', e => {
     const ctrl = e.ctrlKey || e.metaKey;
@@ -1005,7 +1075,7 @@ function showCmdResults(results, q) {
     <div class="cmd-res-group">
       <div class="cmd-res-title">${esc(g.chat.title)}<span>${g.items.length}</span></div>
       ${g.items.map(r => `
-        <div class="cmd-row" data-chat="${jsq(g.chat.id)}" tabindex="0">
+        <div class="cmd-row" data-chat="${jsq(g.chat.id)}" data-mk="${jsq(msgKey(r.m))}" tabindex="0">
           <div class="cmd-row-chat">${esc(r.chat.group)}</div>
           <div class="cmd-row-text">${snippet(r)}</div>
           <div class="cmd-row-meta">${esc(r.m.n || '')} · ${esc(r.m.d || fmtDate(r.m.t, true))}</div>
@@ -1082,7 +1152,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   $('chatScroll').addEventListener('scroll', () => {
     const el = $('chatScroll');
-    if (el.scrollHeight - el.scrollTop - el.clientHeight < 200) loadMore();
+    if (el.scrollTop < 200) loadChunk('older');
   });
 
   const onScroll = () => {
